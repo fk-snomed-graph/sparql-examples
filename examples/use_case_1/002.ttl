@@ -1,0 +1,38 @@
+@prefix ex: <https://www.bgee.org/sparql/.well-known/sparql-examples/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+ex:001 a sh:SPARQLExecutable,
+        sh:SPARQLSelectExecutable ;
+    rdfs:comment "Which drugs for the treatment of diabetes have AKI as a side effect?"@en ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """PREFIX sesame: <http://www.openrdf.org/schema/sesame#>
+PREFIX sct: <http://snomed.info/id/>
+PREFIX kdkg: <http://kdkg.org/ontology#>
+prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+prefix atc:  <http://purl.bioontology.org/ontology/ATC/>
+
+# which drugs for the treatment of diabetes do not have AKI as a side effect
+SELECT DISTINCT ?drug ?druglabel
+FROM sesame:nil # the default graph
+WHERE {
+
+   # all drugs indicated for diabetes (and their descendants)
+   VALUES ?parent { sct:73211009 }  # diabetes mellitus
+
+   ?drug kdkg:is_indicated_for ?disease .
+   ?disease rdfs:subClassOf* ?parent .
+   ?drug rdfs:label ?druglabel .
+
+   # exclude all drugs that have at least one AKI ade
+   MINUS {
+    SELECT DISTINCT ?drug WHERE {
+      ?drug kdkg:has_adverse_event ?ade .
+	  ?ade rdfs:subClassOf*/a kdkg:AKIConcept .
+      ?drug rdfs:label ?druglabel
+    }
+  }
+}""" ;
+    schema:target <https://localhost:7200/sparql> .
